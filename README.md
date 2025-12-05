@@ -29,7 +29,7 @@ Jampa Backend is a NestJS-based REST API for a mobile note-taking application. I
 
 - 🔐 **JWT Authentication** - Secure registration, login, and token refresh
 - 🔄 **Data Synchronization** - Bi-directional sync with conflict resolution
-- 📝 **Note Management** - Support for multiple note types (Text, Checklist, Voice, Image)
+- 📝 **Note Management** - Support for multiple note types
 - 🏷️ **Categories** - Organize notes with categories
 - ⏰ **Reminders** - Set reminders with recurring schedules
 - 🆔 **UUID-based IDs** - Client-generated UUIDs for offline-first functionality
@@ -107,20 +107,8 @@ npm run test:watch
 
 For detailed API documentation, see [API_DOCUMENTATION.md](API_DOCUMENTATION.md)
 
-## Quick Start
 
-See [QUICK_START.md](QUICK_START.md) for a step-by-step guide to get started quickly, including:
-- Database setup
-- Testing the API with curl
 - Mobile app integration examples
-
-## Documentation
-
-- [API_DOCUMENTATION.md](API_DOCUMENTATION.md) - Complete API reference with examples
-- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Feature overview and architecture
-- [QUICK_START.md](QUICK_START.md) - Quick setup and testing guide
-- [TEST_README.md](TEST_README.md) - Testing documentation and coverage
-- [PRE_LAUNCH_CHECKLIST.md](PRE_LAUNCH_CHECKLIST.md) - Pre-deployment checklist
 
 ## Technology Stack
 
@@ -143,8 +131,6 @@ For production deployment:
 6. Set up logging and monitoring
 7. Use environment variables for all sensitive configuration
 
-See [PRE_LAUNCH_CHECKLIST.md](PRE_LAUNCH_CHECKLIST.md) for a complete production checklist.
-
 ## Project Structure
 
 ```
@@ -164,7 +150,3 @@ src/
 - All sync endpoints protected with JWT authentication
 - User data isolation by userId
 - Soft deletes for data integrity
-
-## License
-
-UNLICENSED
