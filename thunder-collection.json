@@ -1,0 +1,162 @@
+{
+  "client": "Thunder Client",
+  "collectionName": "Jampa Backend API",
+  "dateExported": "2023-12-05",
+  "version": "1.1",
+  "folders": [
+    {
+      "name": "Authentication",
+      "requests": [
+        {
+          "name": "Register User",
+          "method": "POST",
+          "url": "http://localhost:3000/api/auth/register",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "type": "json",
+            "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"Test User\"\n}"
+          }
+        },
+        {
+          "name": "Login User",
+          "method": "POST",
+          "url": "http://localhost:3000/api/auth/login",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "body": {
+            "type": "json",
+            "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"password123\"\n}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Synchronization",
+      "requests": [
+        {
+          "name": "Initial Sync (Empty)",
+          "method": "POST",
+          "url": "http://localhost:3000/api/sync",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_TOKEN_HERE"
+            }
+          ],
+          "body": {
+            "type": "json",
+            "raw": "{}"
+          }
+        },
+        {
+          "name": "Sync with Categories",
+          "method": "POST",
+          "url": "http://localhost:3000/api/sync",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_TOKEN_HERE"
+            }
+          ],
+          "body": {
+            "type": "json",
+            "raw": "{\n  \"categories\": [\n    {\n      \"id\": \"123e4567-e89b-12d3-a456-426614174000\",\n      \"name\": \"Work\",\n      \"color\": \"#FF5733\",\n      \"icon\": \"briefcase\",\n      \"createdAt\": \"2023-12-01T10:00:00.000Z\",\n      \"updatedAt\": \"2023-12-01T10:00:00.000Z\"\n    },\n    {\n      \"id\": \"223e4567-e89b-12d3-a456-426614174000\",\n      \"name\": \"Personal\",\n      \"color\": \"#33FF57\",\n      \"icon\": \"home\",\n      \"createdAt\": \"2023-12-01T10:00:00.000Z\",\n      \"updatedAt\": \"2023-12-01T10:00:00.000Z\"\n    }\n  ]\n}"
+          }
+        },
+        {
+          "name": "Sync with Notes",
+          "method": "POST",
+          "url": "http://localhost:3000/api/sync",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_TOKEN_HERE"
+            }
+          ],
+          "body": {
+            "type": "json",
+            "raw": "{\n  \"notes\": [\n    {\n      \"id\": \"323e4567-e89b-12d3-a456-426614174000\",\n      \"title\": \"My First Note\",\n      \"content\": \"This is the content of my first note\",\n      \"noteTypeId\": \"00000000-0000-0000-0000-000000000001\",\n      \"isFavorite\": false,\n      \"isArchived\": false,\n      \"categoryIds\": [\"123e4567-e89b-12d3-a456-426614174000\"],\n      \"createdAt\": \"2023-12-01T11:00:00.000Z\",\n      \"updatedAt\": \"2023-12-01T11:00:00.000Z\"\n    }\n  ]\n}"
+          }
+        },
+        {
+          "name": "Sync with Reminders",
+          "method": "POST",
+          "url": "http://localhost:3000/api/sync",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_TOKEN_HERE"
+            }
+          ],
+          "body": {
+            "type": "json",
+            "raw": "{\n  \"reminders\": [\n    {\n      \"id\": \"423e4567-e89b-12d3-a456-426614174000\",\n      \"noteId\": \"323e4567-e89b-12d3-a456-426614174000\",\n      \"remindAt\": \"2023-12-15T14:30:00.000Z\",\n      \"isRecurring\": false,\n      \"isCompleted\": false,\n      \"createdAt\": \"2023-12-01T11:00:00.000Z\",\n      \"updatedAt\": \"2023-12-01T11:00:00.000Z\"\n    }\n  ]\n}"
+          }
+        },
+        {
+          "name": "Full Sync (All Data)",
+          "method": "POST",
+          "url": "http://localhost:3000/api/sync",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_TOKEN_HERE"
+            }
+          ],
+          "body": {
+            "type": "json",
+            "raw": "{\n  \"lastSyncAt\": \"2023-12-01T00:00:00.000Z\",\n  \"categories\": [\n    {\n      \"id\": \"123e4567-e89b-12d3-a456-426614174000\",\n      \"name\": \"Work\",\n      \"color\": \"#FF5733\",\n      \"icon\": \"briefcase\",\n      \"createdAt\": \"2023-12-01T10:00:00.000Z\",\n      \"updatedAt\": \"2023-12-01T10:00:00.000Z\"\n    }\n  ],\n  \"notes\": [\n    {\n      \"id\": \"323e4567-e89b-12d3-a456-426614174000\",\n      \"title\": \"My First Note\",\n      \"content\": \"This is the content of my first note\",\n      \"noteTypeId\": \"00000000-0000-0000-0000-000000000001\",\n      \"isFavorite\": false,\n      \"isArchived\": false,\n      \"categoryIds\": [\"123e4567-e89b-12d3-a456-426614174000\"],\n      \"createdAt\": \"2023-12-01T11:00:00.000Z\",\n      \"updatedAt\": \"2023-12-01T11:00:00.000Z\"\n    }\n  ],\n  \"reminders\": [\n    {\n      \"id\": \"423e4567-e89b-12d3-a456-426614174000\",\n      \"noteId\": \"323e4567-e89b-12d3-a456-426614174000\",\n      \"remindAt\": \"2023-12-15T14:30:00.000Z\",\n      \"isRecurring\": false,\n      \"isCompleted\": false,\n      \"createdAt\": \"2023-12-01T11:00:00.000Z\",\n      \"updatedAt\": \"2023-12-01T11:00:00.000Z\"\n    }\n  ],\n  \"schedules\": []\n}"
+          }
+        },
+        {
+          "name": "Sync with Soft Delete",
+          "method": "POST",
+          "url": "http://localhost:3000/api/sync",
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_TOKEN_HERE"
+            }
+          ],
+          "body": {
+            "type": "json",
+            "raw": "{\n  \"notes\": [\n    {\n      \"id\": \"323e4567-e89b-12d3-a456-426614174000\",\n      \"title\": \"Deleted Note\",\n      \"content\": \"This note was deleted\",\n      \"noteTypeId\": \"00000000-0000-0000-0000-000000000001\",\n      \"isFavorite\": false,\n      \"isArchived\": false,\n      \"categoryIds\": [],\n      \"createdAt\": \"2023-12-01T11:00:00.000Z\",\n      \"updatedAt\": \"2023-12-05T12:00:00.000Z\",\n      \"deletedAt\": \"2023-12-05T12:00:00.000Z\"\n    }\n  ]\n}"
+          }
+        }
+      ]
+    }
+  ]
+}
