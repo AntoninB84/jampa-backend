@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { APP_GUARD } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { SyncModule } from './sync/sync.module';
 import { User } from './entities/user.entity';
@@ -10,6 +11,8 @@ import { NoteType } from './entities/note-type.entity';
 import { NoteCategory } from './entities/note-category.entity';
 import { Reminder } from './entities/reminder.entity';
 import { Schedule } from './entities/schedule.entity';
+import { ApiKeyGuard } from './auth/api-key.guard';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -42,7 +45,12 @@ import { Schedule } from './entities/schedule.entity';
     AuthModule,
     SyncModule,
   ],
-  controllers: [],
-  providers: [],
+  controllers: [AppController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ApiKeyGuard,
+    },
+  ],
 })
 export class AppModule {}

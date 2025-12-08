@@ -9,6 +9,7 @@ describe('Jampa Backend API (e2e)', () => {
   let app: INestApplication<App>;
   let authToken: string;
   let userId: string;
+  const API_KEY = process.env.API_KEY || 'test-api-key';
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -24,6 +25,57 @@ describe('Jampa Backend API (e2e)', () => {
     await app.close();
   });
 
+  describe('Public Endpoints (e2e)', () => {
+    describe('/hello (GET)', () => {
+      it('should return Hello without API key', () => {
+        return request(app.getHttpServer())
+          .get('/hello')
+          .expect(200)
+          .expect('Hello');
+      });
+
+      it('should return Hello with API key', () => {
+        return request(app.getHttpServer())
+          .get('/hello')
+          .set('x-api-key', API_KEY)
+          .expect(200)
+          .expect('Hello');
+      });
+    });
+  });
+
+  describe('API Key Protection (e2e)', () => {
+    describe('Protected endpoints', () => {
+      it('should fail without API key on /auth/register', () => {
+        return request(app.getHttpServer())
+          .post('/auth/register')
+          .send({
+            email: 'test@example.com',
+            password: 'password123',
+            username: 'testuser',
+          })
+          .expect(401)
+          .expect((res) => {
+            expect(res.body.message).toContain('API key is missing');
+          });
+      });
+
+      it('should fail with invalid API key on /auth/login', () => {
+        return request(app.getHttpServer())
+          .post('/auth/login')
+          .set('x-api-key', 'invalid-key')
+          .send({
+            email: 'test@example.com',
+            password: 'password123',
+          })
+          .expect(401)
+          .expect((res) => {
+            expect(res.body.message).toContain('Invalid API key');
+          });
+      });
+    });
+  });
+
   describe('Auth Module (e2e)', () => {
     const testUser = {
       email: `test-${Date.now()}@example.com`,
@@ -35,6 +87,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should register a new user successfully', () => {
         return request(app.getHttpServer())
           .post('/auth/register')
+          .set('x-api-key', API_KEY)
           .send(testUser)
           .expect(201)
           .expect((res) => {
@@ -54,6 +107,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should fail to register with duplicate email', () => {
         return request(app.getHttpServer())
           .post('/auth/register')
+          .set('x-api-key', API_KEY)
           .send(testUser)
           .expect(409)
           .expect((res) => {
@@ -64,6 +118,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should fail to register with invalid email', () => {
         return request(app.getHttpServer())
           .post('/auth/register')
+          .set('x-api-key', API_KEY)
           .send({
             email: 'invalid-email',
             password: 'password123',
@@ -75,6 +130,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should fail to register with short password', () => {
         return request(app.getHttpServer())
           .post('/auth/register')
+          .set('x-api-key', API_KEY)
           .send({
             email: 'test2@example.com',
             password: 'short',
@@ -86,6 +142,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should fail to register with missing fields', () => {
         return request(app.getHttpServer())
           .post('/auth/register')
+          .set('x-api-key', API_KEY)
           .send({
             email: 'test3@example.com',
           })
@@ -97,6 +154,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should login successfully with correct credentials', () => {
         return request(app.getHttpServer())
           .post('/auth/login')
+          .set('x-api-key', API_KEY)
           .send({
             email: testUser.email,
             password: testUser.password,
@@ -112,6 +170,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should fail to login with incorrect password', () => {
         return request(app.getHttpServer())
           .post('/auth/login')
+          .set('x-api-key', API_KEY)
           .send({
             email: testUser.email,
             password: 'wrongpassword',
@@ -125,6 +184,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should fail to login with non-existent email', () => {
         return request(app.getHttpServer())
           .post('/auth/login')
+          .set('x-api-key', API_KEY)
           .send({
             email: 'nonexistent@example.com',
             password: 'password123',
@@ -135,6 +195,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should fail to login with invalid email format', () => {
         return request(app.getHttpServer())
           .post('/auth/login')
+          .set('x-api-key', API_KEY)
           .send({
             email: 'invalid-email',
             password: 'password123',
@@ -145,6 +206,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should fail to login with missing credentials', () => {
         return request(app.getHttpServer())
           .post('/auth/login')
+          .set('x-api-key', API_KEY)
           .send({})
           .expect(400);
       });
@@ -156,6 +218,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should fail without authentication', () => {
         return request(app.getHttpServer())
           .post('/sync')
+          .set('x-api-key', API_KEY)
           .send({
             categories: [],
             noteTypes: [],
@@ -169,6 +232,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should synchronize with empty data', () => {
         return request(app.getHttpServer())
           .post('/sync')
+          .set('x-api-key', API_KEY)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             categories: [],
@@ -194,6 +258,7 @@ describe('Jampa Backend API (e2e)', () => {
 
         return request(app.getHttpServer())
           .post('/sync')
+          .set('x-api-key', API_KEY)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             categories: [
@@ -221,6 +286,7 @@ describe('Jampa Backend API (e2e)', () => {
 
         return request(app.getHttpServer())
           .post('/sync')
+          .set('x-api-key', API_KEY)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             categories: [],
@@ -248,6 +314,7 @@ describe('Jampa Backend API (e2e)', () => {
 
         return request(app.getHttpServer())
           .post('/sync')
+          .set('x-api-key', API_KEY)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             categories: [],
@@ -277,6 +344,7 @@ describe('Jampa Backend API (e2e)', () => {
 
         return request(app.getHttpServer())
           .post('/sync')
+          .set('x-api-key', API_KEY)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             lastSyncAt,
@@ -298,6 +366,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should fail with invalid data format', () => {
         return request(app.getHttpServer())
           .post('/sync')
+          .set('x-api-key', API_KEY)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             categories: 'invalid',
@@ -312,6 +381,7 @@ describe('Jampa Backend API (e2e)', () => {
       it('should fail with invalid JWT token', () => {
         return request(app.getHttpServer())
           .post('/sync')
+          .set('x-api-key', API_KEY)
           .set('Authorization', 'Bearer invalid-token')
           .send({
             categories: [],
@@ -330,6 +400,7 @@ describe('Jampa Backend API (e2e)', () => {
 
         return request(app.getHttpServer())
           .post('/sync')
+          .set('x-api-key', API_KEY)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             categories: [],
@@ -358,6 +429,7 @@ describe('Jampa Backend API (e2e)', () => {
 
         return request(app.getHttpServer())
           .post('/sync')
+          .set('x-api-key', API_KEY)
           .set('Authorization', `Bearer ${authToken}`)
           .send({
             categories: [
