@@ -10,6 +10,7 @@ import * as bcrypt from 'bcrypt';
 import { User } from '../entities/user.entity';
 import { RegisterDto, LoginDto, RefreshTokenDto } from './dto/auth.dto';
 import { ConfigService } from '@nestjs/config';
+import { create } from 'domain';
 
 @Injectable()
 export class AuthService {
@@ -56,6 +57,8 @@ export class AuthService {
         id: user.id,
         email: user.email,
         username: user.username,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       },
     };
   }
@@ -87,6 +90,8 @@ export class AuthService {
         id: user.id,
         email: user.email,
         username: user.username,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       },
     };
   }
