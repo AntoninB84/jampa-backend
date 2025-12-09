@@ -35,8 +35,8 @@ export class SyncService {
       throw new Error('User not found');
     }
 
-    const lastSyncAt = syncData.lastSyncAt
-      ? new Date(syncData.lastSyncAt)
+    const lastSyncAt = syncData.lastSyncDate
+      ? new Date(syncData.lastSyncDate)
       : null;
 
     // Process incoming data from client
@@ -50,7 +50,7 @@ export class SyncService {
     await this.userRepository.save(user);
 
     return {
-      lastSyncAt: user.lastSyncAt,
+      lastSyncDate: user.lastSyncAt,
       ...serverChanges,
     };
   }
@@ -125,7 +125,40 @@ export class SyncService {
       }
     }
 
-    // Process schedules first (as reminders may reference them)
+    // Process notes (before schedules and note-categories since they reference notes)
+    if (syncData.notes && syncData.notes.length > 0) {
+      for (const noteDto of syncData.notes) {
+        const existing = await this.noteRepository.findOne({
+          where: { id: noteDto.id, userId },
+        });
+
+        const noteData: Partial<Note> = {
+          id: noteDto.id,
+          title: noteDto.title,
+          content: noteDto.content,
+          userId,
+          noteTypeId: noteDto.noteTypeId,
+          isImportant: noteDto.isImportant,
+          status: noteDto.status,
+          createdAt: new Date(noteDto.createdAt),
+          updatedAt: new Date(noteDto.updatedAt),
+        };
+
+        if (noteDto.deletedAt) {
+          noteData.deletedAt = new Date(noteDto.deletedAt);
+        }
+
+        if (existing) {
+          if (new Date(noteDto.updatedAt) > new Date(existing.updatedAt)) {
+            await this.noteRepository.update({ id: noteDto.id }, noteData);
+          }
+        } else {
+          await this.noteRepository.save(this.noteRepository.create(noteData));
+        }
+      }
+    }
+
+    // Process schedules (after notes, before reminders since reminders reference schedules)
     if (syncData.schedules && syncData.schedules.length > 0) {
       for (const scheduleDto of syncData.schedules) {
         const existing = await this.scheduleRepository.findOne({
@@ -172,51 +205,45 @@ export class SyncService {
       }
     }
 
-    // Process notes
-    if (syncData.notes && syncData.notes.length > 0) {
-      for (const noteDto of syncData.notes) {
-        const existing = await this.noteRepository.findOne({
-          where: { id: noteDto.id, userId },
+    // Process note-categories (after notes and categories)
+    if (syncData.noteCategories && syncData.noteCategories.length > 0) {
+      for (const noteCategoryDto of syncData.noteCategories) {
+        const existing = await this.noteCategoryRepository.findOne({
+          where: {
+            noteId: noteCategoryDto.noteId,
+            categoryId: noteCategoryDto.categoryId,
+          },
         });
 
-        const noteData: Partial<Note> = {
-          id: noteDto.id,
-          title: noteDto.title,
-          content: noteDto.content,
-          userId,
-          noteTypeId: noteDto.noteTypeId,
-          isImportant: noteDto.isImportant,
-          status: noteDto.status,
-          createdAt: new Date(noteDto.createdAt),
-          updatedAt: new Date(noteDto.updatedAt),
+        const noteCategoryData: Partial<NoteCategory> = {
+          noteId: noteCategoryDto.noteId,
+          categoryId: noteCategoryDto.categoryId,
+          createdAt: new Date(noteCategoryDto.createdAt),
         };
 
-        if (noteDto.deletedAt) {
-          noteData.deletedAt = new Date(noteDto.deletedAt);
+        if (noteCategoryDto.deletedAt) {
+          noteCategoryData.deletedAt = new Date(noteCategoryDto.deletedAt);
         }
 
         if (existing) {
-          if (new Date(noteDto.updatedAt) > new Date(existing.updatedAt)) {
-            await this.noteRepository.update({ id: noteDto.id }, noteData);
-          }
-        } else {
-          await this.noteRepository.save(this.noteRepository.create(noteData));
-        }
-
-        // Handle note-category relationships
-        if (noteDto.categoryIds) {
-          // Remove old associations
-          await this.noteCategoryRepository.delete({ noteId: noteDto.id });
-
-          // Add new associations
-          for (const categoryId of noteDto.categoryIds) {
-            await this.noteCategoryRepository.save(
-              this.noteCategoryRepository.create({
-                noteId: noteDto.id,
-                categoryId,
-              }),
+          // Update if client version is newer (compare createdAt since there's no updatedAt)
+          if (
+            new Date(noteCategoryDto.createdAt) >
+              new Date(existing.createdAt) ||
+            (noteCategoryDto.deletedAt && !existing.deletedAt)
+          ) {
+            await this.noteCategoryRepository.update(
+              {
+                noteId: noteCategoryDto.noteId,
+                categoryId: noteCategoryDto.categoryId,
+              },
+              noteCategoryData,
             );
           }
+        } else {
+          await this.noteCategoryRepository.save(
+            this.noteCategoryRepository.create(noteCategoryData),
+          );
         }
       }
     }
@@ -225,12 +252,12 @@ export class SyncService {
     if (syncData.reminders && syncData.reminders.length > 0) {
       for (const reminderDto of syncData.reminders) {
         const existing = await this.reminderRepository.findOne({
-          where: { id: reminderDto.id, userId },
+          where: { id: reminderDto.id },
         });
 
         const reminderData: Partial<Reminder> = {
           id: reminderDto.id,
-          userId,
+          noteId: reminderDto.noteId,
           scheduleId: reminderDto.scheduleId,
           offsetValue: reminderDto.offsetValue,
           offsetType: reminderDto.offsetType,
@@ -257,6 +284,70 @@ export class SyncService {
         }
       }
     }
+
+    // Process deletions
+    if (syncData.deletions && syncData.deletions.length > 0) {
+      for (const deletion of syncData.deletions) {
+        switch (deletion.entityType) {
+          case 'category':
+            await this.categoryRepository.update(
+              { id: deletion.entityId, userId },
+              { deletedAt: new Date() },
+            );
+            break;
+          case 'noteType':
+            await this.noteTypeRepository.update(
+              { id: deletion.entityId, userId },
+              { deletedAt: new Date() },
+            );
+            break;
+          case 'note':
+            await this.noteRepository.update(
+              { id: deletion.entityId, userId },
+              { deletedAt: new Date() },
+            );
+            break;
+          case 'noteCategory':
+            // For noteCategory, entityId format: "noteId:categoryId"
+            const [noteId, categoryId] = deletion.entityId.split(':');
+            await this.noteCategoryRepository.update(
+              { noteId, categoryId },
+              { deletedAt: new Date() },
+            );
+            break;
+          case 'schedule':
+            // Find the schedule through the note to verify userId
+            const schedule = await this.scheduleRepository
+              .createQueryBuilder('schedule')
+              .innerJoin('schedule.note', 'note')
+              .where('schedule.id = :scheduleId', { scheduleId: deletion.entityId })
+              .andWhere('note.userId = :userId', { userId })
+              .getOne();
+            if (schedule) {
+              await this.scheduleRepository.update(
+                { id: deletion.entityId },
+                { deletedAt: new Date() },
+              );
+            }
+            break;
+          case 'reminder':
+            // Find the reminder through the note to verify userId
+            const reminder = await this.reminderRepository
+              .createQueryBuilder('reminder')
+              .innerJoin('reminder.note', 'note')
+              .where('reminder.id = :reminderId', { reminderId: deletion.entityId })
+              .andWhere('note.userId = :userId', { userId })
+              .getOne();
+            if (reminder) {
+              await this.reminderRepository.update(
+                { id: deletion.entityId },
+                { deletedAt: new Date() },
+              );
+            }
+            break;
+        }
+      }
+    }
   }
 
   private async getServerChanges(userId: string, lastSyncAt: Date | null) {
@@ -266,7 +357,9 @@ export class SyncService {
 
     // Get system note types (userId is null for system types)
     const systemNoteTypes = await this.noteTypeRepository.find({
-      where: { userId: IsNull() },
+      where: lastSyncAt
+        ? { userId: IsNull(), updatedAt: MoreThan(lastSyncAt) }
+        : { userId: IsNull() },
     });
 
     // Get user's custom note types
@@ -278,10 +371,104 @@ export class SyncService {
 
     const noteTypes = [...systemNoteTypes, ...userNoteTypes];
 
+    // Collect deletions
+    const deletions = [];
+
+    // Find deleted categories
+    if (lastSyncAt) {
+      const deletedCategories = await this.categoryRepository.find({
+        where: { userId, deletedAt: MoreThan(lastSyncAt) },
+      });
+      deletions.push(
+        ...deletedCategories.map((c) => ({
+          entityType: 'category' as const,
+          entityId: c.id,
+        })),
+      );
+
+      // Find deleted note types
+      const deletedNoteTypes = await this.noteTypeRepository.find({
+        where: { userId, deletedAt: MoreThan(lastSyncAt) },
+      });
+      deletions.push(
+        ...deletedNoteTypes.map((nt) => ({
+          entityType: 'noteType' as const,
+          entityId: nt.id,
+        })),
+      );
+
+      // Find deleted notes
+      const deletedNotes = await this.noteRepository.find({
+        where: { userId, deletedAt: MoreThan(lastSyncAt) },
+      });
+      deletions.push(
+        ...deletedNotes.map((n) => ({
+          entityType: 'note' as const,
+          entityId: n.id,
+        })),
+      );
+
+      // Find deleted note-categories
+      const deletedNoteCategories = await this.noteCategoryRepository
+        .createQueryBuilder('nc')
+        .innerJoin('nc.note', 'note')
+        .where('note.userId = :userId', { userId })
+        .andWhere('nc.deletedAt > :lastSyncAt', { lastSyncAt })
+        .getMany();
+      deletions.push(
+        ...deletedNoteCategories.map((nc) => ({
+          entityType: 'noteCategory' as const,
+          entityId: `${nc.noteId}:${nc.categoryId}`,
+        })),
+      );
+
+      // Find deleted reminders
+      const deletedReminders = await this.reminderRepository
+        .createQueryBuilder('reminder')
+        .innerJoin('reminder.note', 'note')
+        .where('note.userId = :userId', { userId })
+        .andWhere('reminder.deletedAt > :lastSyncAt', { lastSyncAt })
+        .getMany();
+      deletions.push(
+        ...deletedReminders.map((r) => ({
+          entityType: 'reminder' as const,
+          entityId: r.id,
+        })),
+      );
+
+      // Find deleted schedules for user's notes
+      const deletedSchedules = await this.scheduleRepository
+        .createQueryBuilder('schedule')
+        .innerJoin('schedule.note', 'note')
+        .where('note.userId = :userId', { userId })
+        .andWhere('schedule.deletedAt > :lastSyncAt', { lastSyncAt })
+        .getMany();
+      deletions.push(
+        ...deletedSchedules.map((s) => ({
+          entityType: 'schedule' as const,
+          entityId: s.id,
+        })),
+      );
+    }
+
     // Get categories
     const categories = await this.categoryRepository.find({
       where: whereCondition,
     });
+
+    // Get note-categories
+    const noteCategories = lastSyncAt
+      ? await this.noteCategoryRepository
+          .createQueryBuilder('nc')
+          .innerJoin('nc.note', 'note')
+          .where('note.userId = :userId', { userId })
+          .andWhere('nc.createdAt > :lastSyncAt', { lastSyncAt })
+          .getMany()
+      : await this.noteCategoryRepository
+          .createQueryBuilder('nc')
+          .innerJoin('nc.note', 'note')
+          .where('note.userId = :userId', { userId })
+          .getMany();
 
     // Get notes
     const notes = await this.noteRepository.find({
@@ -289,16 +476,20 @@ export class SyncService {
       relations: ['noteCategories'],
     });
 
-    // Get reminders
-    const reminders = await this.reminderRepository.find({
-      where: whereCondition,
-    });
-
-    // Get schedules for the user's notes
+    // Get schedules and reminders for the user's notes
     const noteIds = notes.map((n) => n.id);
     const schedules =
       noteIds.length > 0
         ? await this.scheduleRepository.find({
+            where: lastSyncAt
+              ? { noteId: In(noteIds), updatedAt: MoreThan(lastSyncAt) }
+              : { noteId: In(noteIds) },
+          })
+        : [];
+
+    const reminders =
+      noteIds.length > 0
+        ? await this.reminderRepository.find({
             where: lastSyncAt
               ? { noteId: In(noteIds), updatedAt: MoreThan(lastSyncAt) }
               : { noteId: In(noteIds) },
@@ -321,6 +512,12 @@ export class SyncService {
         updatedAt: c.updatedAt,
         deletedAt: c.deletedAt,
       })),
+      noteCategories: noteCategories.map((nc) => ({
+        noteId: nc.noteId,
+        categoryId: nc.categoryId,
+        createdAt: nc.createdAt,
+        deletedAt: nc.deletedAt,
+      })),
       notes: notes.map((n) => ({
         id: n.id,
         title: n.title,
@@ -335,6 +532,7 @@ export class SyncService {
       })),
       reminders: reminders.map((r) => ({
         id: r.id,
+        noteId: r.noteId,
         scheduleId: r.scheduleId,
         offsetValue: r.offsetValue,
         offsetType: r.offsetType,
@@ -356,6 +554,7 @@ export class SyncService {
         updatedAt: s.updatedAt,
         deletedAt: s.deletedAt,
       })),
+      deletions,
     };
   }
 }

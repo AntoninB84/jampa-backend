@@ -9,7 +9,6 @@ import {
 import { Note } from './note.entity';
 import { Category } from './category.entity';
 import { NoteType } from './note-type.entity';
-import { Reminder } from './reminder.entity';
 
 @Entity('users')
 export class User {
@@ -45,7 +44,4 @@ export class User {
 
   @OneToMany(() => NoteType, (noteType) => noteType.user)
   noteTypes: NoteType[];
-
-  @OneToMany(() => Reminder, (reminder) => reminder.user)
-  reminders: Reminder[];
 }

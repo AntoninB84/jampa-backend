@@ -7,7 +7,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { User } from './user.entity';
+import { Note } from './note.entity';
 import { Schedule } from './schedule.entity';
 
 export enum ReminderOffsetType {
@@ -21,12 +21,12 @@ export class Reminder {
   @PrimaryColumn('uuid')
   id: string;
 
-  @Column({ name: 'user_id' })
-  userId: string;
+  @Column({ name: 'note_id' })
+  noteId: string;
 
-  @ManyToOne(() => User, (user) => user.reminders, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
-  user: User;
+  @ManyToOne(() => Note, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'note_id' })
+  note: Note;
 
   @Column({ name: 'schedule_id', nullable: true })
   scheduleId: string;

@@ -12,6 +12,7 @@ import { User } from './user.entity';
 import { NoteType } from './note-type.entity';
 import { NoteCategory } from './note-category.entity';
 import { Schedule } from './schedule.entity';
+import { Reminder } from './reminder.entity';
 
 export enum NoteStatusEnum {
   TODO = 'todo',
@@ -68,4 +69,7 @@ export class Note {
 
   @OneToMany(() => Schedule, (schedule) => schedule.note)
   schedules: Schedule[];
+
+  @OneToMany(() => Reminder, (reminder) => reminder.note)
+  reminders: Reminder[];
 }

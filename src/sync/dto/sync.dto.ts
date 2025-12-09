@@ -50,6 +50,21 @@ export class SyncNoteTypeDto {
   deletedAt?: string;
 }
 
+export class SyncNoteCategoryDto {
+  @IsUUID()
+  noteId: string;
+
+  @IsUUID()
+  categoryId: string;
+
+  @IsDateString()
+  createdAt: string;
+
+  @IsOptional()
+  @IsDateString()
+  deletedAt?: string;
+}
+
 export class SyncNoteDto {
   @IsUUID()
   id: string;
@@ -64,6 +79,10 @@ export class SyncNoteDto {
   @IsOptional()
   @IsUUID()
   noteTypeId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  userId?: string;
 
   @IsBoolean()
   isImportant: boolean;
@@ -91,17 +110,17 @@ export class SyncReminderDto {
   @IsUUID()
   id: string;
 
-  @IsOptional()
   @IsUUID()
-  scheduleId?: string;
+  scheduleId: string;
 
-  @IsOptional()
+  @IsUUID()
+  noteId: string;
+
   @IsInt()
-  offsetValue?: number;
+  offsetValue: number;
 
-  @IsOptional()
   @IsEnum(ReminderOffsetType)
-  offsetType?: ReminderOffsetType;
+  offsetType: ReminderOffsetType;
 
   @IsBoolean()
   isNotification: boolean;
@@ -159,10 +178,19 @@ export class SyncScheduleDto {
   deletedAt?: string;
 }
 
+export class SyncDeletionDto {
+  @IsString()
+  @IsEnum(['category', 'noteType', 'note', 'noteCategory', 'reminder', 'schedule'])
+  entityType: 'category' | 'noteType' | 'note' | 'noteCategory' | 'reminder' | 'schedule';
+
+  @IsString()
+  entityId: string;
+}
+
 export class SyncRequestDto {
   @IsOptional()
-  @IsDateString()
-  lastSyncAt?: string;
+  @IsDateString({ strict: false }, { each: false })
+  lastSyncDate?: string | null;
 
   @IsOptional()
   @IsArray()
@@ -175,6 +203,12 @@ export class SyncRequestDto {
   @ValidateNested({ each: true })
   @Type(() => SyncNoteTypeDto)
   noteTypes?: SyncNoteTypeDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SyncNoteCategoryDto)
+  noteCategories?: SyncNoteCategoryDto[];
 
   @IsOptional()
   @IsArray()
@@ -193,4 +227,10 @@ export class SyncRequestDto {
   @ValidateNested({ each: true })
   @Type(() => SyncScheduleDto)
   schedules?: SyncScheduleDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SyncDeletionDto)
+  deletions?: SyncDeletionDto[];
 }
